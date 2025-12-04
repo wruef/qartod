@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qartod"
+version = "0.3.0"
+readme = "README.md"
+description = "scripts for generating QARTOD statistics for the OOI Regional Cabled Array"
+dependencies = [
+    "numpy",
+    "pandas",
+    "xarray",
+    "netCDF4",
+    "scipy",
+    "s3fs",
+    "dask",
+    "numba",
+    "loguru",
+    "zarr<3",
+]
+ [tool.hatch.build.targets.wheel]
+      packages = ["qartod"]

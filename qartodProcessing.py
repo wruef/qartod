@@ -6,15 +6,8 @@ import numpy as np
 import pandas as pd
 import sys
 import decimate
-from scipy.stats import normaltest
-import dask
-from dask.diagnostics import ProgressBar
 from loguru import logger
-
-import dask.array as da
-
-from ast import literal_eval
-from datetime import datetime, timezone
+from datetime import datetime
 import dateutil.parser as parser
 import json
 import os
@@ -367,91 +360,6 @@ def decimateData(xs,decimationThreshold):
 
     return dec_data
 
-def exportTables(qartodDict,site,node,sensor,qartod_tests):
-    print(qartodDict)
-
-    headers = {"gross_range": {}, "climatology": {}}
-    headers['gross_range']['lookup'] = ['subsite', 'node', 'sensor', 'stream', 'parameters', 'qcConfig', 'source', 'notes']
-    headers['climatology']['lookup'] = ['subsite', 'node', 'sensor', 'stream', 'parameters', 'climatologyTable', 'source', 'notes']
-    headers['climatology']['table'] = ["","[1, 1]","[2, 2]","[3, 3]","[4, 4]","[5, 5]","[6, 6]","[7, 7]","[8, 8]","[9, 9]","[10, 10]","[11, 11]","[12, 12]"]
-    testOrder = {'lookup': 0,'table': 1}
-
-    folderPath = os.path.join(os.path.expanduser('~'), 'qartod_staging')
-    folderPath = os.path.abspath(folderPath)
-    if not os.path.exists(folderPath):
-        os.makedirs(folderPath)
-
-    for param in qartodDict:
-        for test in qartodDict[param]:
-            output = qartod_tests[test]['output']
-            print('output: ', output)
-            for fileOut in output:
-                print('fileOut ', fileOut)
-                if 'lookup' in fileOut:
-                    for method in qartodDict[param][test]:
-                        print('method: ', method)
-                        qartod_csv_name = '-'.join([site,node,sensor,param]) + '.' + test + '_values.csv' + '.' + method
-                        qartod_csv = os.path.join(folderPath, qartod_csv_name)
-                        print('exporting ',qartod_csv)
-                        header_out = headers[test][fileOut]       
-                        if 'binned' in method:
-                            header_out.insert(0,'')
-                            with open(qartod_csv, 'w') as lkup:
-                                lkup.write(','.join(header_out))
-                                lkup.write("\n")
-                                for key in qartodDict[param][test][method]:
-                                    lkup.write(str(list(key)) + "\n")
-                                    lkup.write(",")
-                                    qartodRow = qartodDict[param][test][method][key][testOrder[fileOut]]
-                                    if isinstance(qartodRow, str):
-                                        lkup.write(qartodRow)
-                                    else:
-                                        lkup.write(qartodRow.to_string())
-                                    lkup.write("\n")
-                        else:
-                            qartodOut = qartodDict[param][test][method][testOrder[fileOut]]
-                            header_out = headers[test][fileOut]
-                            qartodOut.to_csv(qartod_csv, index=False, columns = header_out)
-
-                elif 'table' in fileOut:
-                    for method in qartodDict[param][test]:
-                        print('method: ', method)
-                        qartod_csv_name = '-'.join([site,node,sensor,param]) + '.' + test + '.csv' + '.' + method
-                        qartod_csv = os.path.join(folderPath, qartod_csv_name)
-                        print('exporting ', qartod_csv)
-                        if len(output) > 1:
-                            if 'binned' in method:
-                                with open(qartod_csv, 'w') as tbl:
-                                    for key in qartodDict[param][test][method]:
-                                        tbl.write(str(key))
-                                        tbl.write(",")
-                                        qartodRow = qartodDict[param][test][method][key][testOrder[fileOut]]
-                                        tbl.write(','.join(qartodRow))
-                                        tbl.write("\n")
-                            else:
-                                qartodOut = qartodDict[param][test][method][testOrder[fileOut]]
-                                with open(qartod_csv, 'w') as tbl:
-                                    for qartodRow in qartodOut:   
-                                        tbl.write(qartodRow)
-
-                        else:
-                            if 'binned' in method:
-                                with open(qartod_csv, 'w') as tbl:
-                                    for key in qartodDict[param][test][method]:
-                                        tbl.write(str(key))
-                                        tbl.write(",")
-                                        qartodRow = qartodDict[param][test][method][key]
-                                        tbl.write(qartodRow)
-                                        tbl.write("\n")
-                            else:
-                                qartodOut = qartodDict[param][test][method]
-                                with open(qartod_csv, 'w') as tbl:
-                                    for qartodRow in qartodOut:
-                                        tbl.write(qartodRow)
-    
-    return
-
-
 def filterData(data, node, site, sensor, param, cut_off, annotations, pidDict):
     index = 1
 
@@ -538,7 +446,6 @@ def loadAnnotations(site):
         anno = pd.DataFrame(anno)
     else:
         print(f"error retrieving annotation history for {site}")
-    
 
     return anno
 
@@ -549,6 +456,7 @@ def loadData(zarrDir):
     ds = xr.open_zarr(zarr_store, consolidated=True)
 
     return ds
+
 
 def loadPID():
     pidRawFile = 'https://raw.githubusercontent.com/oceanobservatories/preload-database/refs/heads/master/csv/ParameterDefs.csv'

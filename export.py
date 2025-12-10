@@ -17,7 +17,7 @@ def build_climatology_object(clim,testKey):
             rows.append(row)
     else:
         first = "[0, 0]"
-        monthRanges = [f"[{clim[testKey]['lower'][0]:.2f}, {clim[testKey]['upper'][0]:.2f}]" for i in range(12)]
+        monthRanges = [f"[{clim[testKey]['lower'][i]:.2f}, {clim[testKey]['upper'][i]:.2f}]" for i in range(12)]
         rows = [[first] + monthRanges]
         
     df_clim = pd.DataFrame(rows)
